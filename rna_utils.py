@@ -1,18 +1,69 @@
-def calculate_edit_distance(s1, s2):
+import subprocess
+import os
+
+def calculate_rnadistance(s1, s2, method='default'):
     """
-    Calculates Matching Distance (RNAdistance -Xm).
+    Calculates the distance between two RNA structures using the external
+    ViennaRNA RNAdistance executable.
+
+    Parameters:
+    -----------
+    s1, s2 : str
+        The dot-bracket structure strings.
+    method : str
+        'default' - Tree Edit Distance (Default)
+        'string'  - String Alignment (-D F)
+        'bp'      - Base Pair Distance (-D p)
+
+    Returns:
+    --------
+    float/int : The calculated distance.
     """
-    if len(s1) < len(s2):
-        return calculate_edit_distance(s2, s1)
-    if len(s2) == 0:
-        return len(s1)
-    previous_row = range(len(s2) + 1)
-    for i, c1 in enumerate(s1):
-        current_row = [i + 1]
-        for j, c2 in enumerate(s2):
-            insertions = previous_row[j + 1] + 1 
-            deletions = current_row[j] + 1       
-            substitutions = previous_row[j] + (c1 != c2)
-            current_row.append(min(insertions, deletions, substitutions))
-        previous_row = current_row
-    return previous_row[-1]
+    
+    exe_path = r"C:\Program Files (x86)\ViennaRNA Package\RNAdistance.exe"
+    
+    if not os.path.exists(exe_path):
+        print(f"Error: RNAdistance not found at {exe_path}")
+        return None
+
+    cmd_args = [exe_path]
+    
+    if method == 'string':
+        cmd_args.extend(["-D", "F"])
+    elif method == 'bp':
+        cmd_args.extend(["-D", "p"])
+    elif method == 'default':
+        pass 
+
+    input_str = f"{s1}\n{s2}\n"
+
+    try:
+        res = subprocess.run(
+            cmd_args,
+            input=input_str,
+            text=True,
+            capture_output=True
+        )
+        
+        output = res.stdout.strip()
+        
+        if not output:
+            return None
+
+        last_line = output.splitlines()[-1]
+        
+        if ":" in last_line:
+            distance = float(last_line.split(":")[-1].strip())
+        else:
+            parts = last_line.split()
+            if parts and parts[-1].replace('.', '', 1).isdigit():
+                distance = float(parts[-1])
+            else:
+                print(f"Warning: Could not parse output: {last_line}")
+                return None
+
+        return int(distance)
+
+    except Exception as e:
+        print(f"System Error running RNAdistance: {e}")
+        return None

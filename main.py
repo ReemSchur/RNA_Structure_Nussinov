@@ -1,11 +1,12 @@
 import sys
 from nussinov_algo import NussinovRNA
-from rna_utils import calculate_edit_distance
+from rna_utils import calculate_rnadistance
 
 # --- Main Interactive Execution ---
 if __name__ == "__main__":
     print("="*60)
     print("   GENERIC RNA STRUCTURE COMPARISON TOOL")
+    print("   (Uses ViennaRNA RNAdistance executable)")
     print("="*60)
 
     # 1. Get Sequence and Calculate NJ
@@ -20,7 +21,7 @@ if __name__ == "__main__":
     pair_count = solver.get_pair_count()
     
     print(f"   -> NJ Structure Calculated: {nj_structure}")
-    print(f"   -> Number of Base Pairs: {pair_count}")
+    print(f"   -> Number of Base Pairs:    {pair_count}")
 
     # 2. Get Reference Structure
     print("\n2. Enter BIOLOGICAL REFERENCE Structure (Dot-Bracket):")
@@ -33,19 +34,25 @@ if __name__ == "__main__":
     # 4. Perform Comparisons
     if ref_structure and mfold_structure:
         print("\n" + "-"*60)
-        print("COMPARISON RESULTS")
+        print("COMPARISON RESULTS (Metric: Tree Edit Distance)")
         print("-" * 60)
 
-        # Comparison A: NJ vs Reference
-        dist_nj = calculate_edit_distance(nj_structure, ref_structure)
+        # Comparison A: NJ vs Reference (Using Default Tree Edit Distance)
+        dist_nj = calculate_rnadistance(nj_structure, ref_structure, method='default')
         
-        # Comparison B: mfold vs Reference
-        dist_mfold = calculate_edit_distance(mfold_structure, ref_structure)
+        # Comparison B: mfold vs Reference (Using Default Tree Edit Distance)
+        dist_mfold = calculate_rnadistance(mfold_structure, ref_structure, method='default')
 
-        print(f"{'Algorithm':<15} | {'Distance to Reference':<25} | {'Conclusion'}")
+        # Handle cases where RNAdistance might fail or return None
+        nj_display = dist_nj if dist_nj is not None else "Error"
+        mfold_display = dist_mfold if dist_mfold is not None else "Error"
+
+        print(f"{'Algorithm':<20} | {'Tree Edit Distance':<20} | {'Notes'}")
         print("-" * 60)
-        print(f"{'Nussinov (NJ)':<15} | {dist_nj:<25} | {'High Error' if dist_nj > 10 else 'Good Match'}")
-        print(f"{'mfold (Energy)':<15} | {dist_mfold:<25} | {'High Error' if dist_mfold > 10 else 'Good Match'}")
+        print(f"{'Nussinov (NJ)':<20} | {str(nj_display):<20} | {'Your Implementation'}")
+        print(f"{'mfold (Energy)':<20} | {str(mfold_display):<20} | {'Energy Minimization'}")
         print("-" * 60)
+        
+        print("\nNote: Lower distance indicates better structural similarity.")
     else:
         print("\nError: Missing structure inputs. Cannot compare.")
